@@ -72,11 +72,11 @@ int StPicoHFJetMaker::InitJets() {
     jetTree->Branch("centrality", &fCentrality, "centrality/I");
     jetTree->Branch("centralityWeight", &fCentralityWeight,
                     "centralityWeight/F");
-    jetTree->Branch("deltaR", &fDeltaR, "deltaR/F");
 
 
     if(mIsEmbedding){
     jetTree->Branch("xsecWeight", &fXsecWeight, "xsecWeight/F");
+    jetTree->Branch("deltaR", &fDeltaR, "deltaR/F");
     jetTree->Branch("mc_pt", &fMcJet.pt, "mc_pt/F");
     jetTree->Branch("mc_eta", &fMcJet.eta, "mc_eta/F");
     jetTree->Branch("mc_phi", &fMcJet.phi, "mc_phi/F");
