@@ -119,14 +119,18 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   // picoCuts->addTriggerId(450025);    // vpdmb-5-p-nobsmd
 
   // 2014 MB triggers
-  picoCuts->addTriggerId(450010); // vpdmb-30
-  picoCuts->addTriggerId(450020); // vpdmb-30
-  picoCuts->addTriggerId(450008); // vpdmb-5
-  picoCuts->addTriggerId(450018); // vpdmb-5
-
+  if (isEmbedding) {
+    picoCuts->addTriggerId(450010); // vpdmb-30
+    picoCuts->addTriggerId(450020); // vpdmb-30
+    picoCuts->addTriggerId(450008); // vpdmb-5
+    picoCuts->addTriggerId(450018); // vpdmb-5
+  }
+  
   // 2014 BHT2*VPD30 triggers
-  //	picoCuts->addTriggerId(450202);    // BHT2*VPD30
-  //	picoCuts->addTriggerId(450212);    // BHT2*VPD30
+  if (!isEmbedding) {
+    picoCuts->addTriggerId(450202);    // BHT2*VPD30
+    picoCuts->addTriggerId(450212);    // BHT2*VPD30
+  }
 
   // 2014 BHT3 triggers
   // picoCuts->addTriggerId(450203);    // BHT3

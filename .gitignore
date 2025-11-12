@@ -1,6 +1,7 @@
 *.root
 
 data/submit/2*
+trees/job*
 
 .consign
 .idea/

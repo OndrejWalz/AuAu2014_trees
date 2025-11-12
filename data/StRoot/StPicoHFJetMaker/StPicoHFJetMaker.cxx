@@ -68,7 +68,6 @@ int StPicoHFJetMaker::InitJets() {
 
   mOutList->SetName("QA_histograms"); 
 
-  // optional: keep a centrality9 QA hist
   mOutList->Add(new TH1D("hcent9", "centrality9;bin;events", 10, -1, 9));
 
   TDirectory* fileDir = gDirectory;
@@ -185,18 +184,19 @@ int StPicoHFJetMaker::FinishJets() {
     if (!rdir) continue;
 
     for (int c3 = 1; c3 <= 3; ++c3) {
-      const size_t ci = size_t(c3);  
+      const int ciTree = c3 - 1;  // 0..2
 
       TDirectory* cdir = dynamic_cast<TDirectory*>(rdir->Get(kCentTag[c3]));
       if (!cdir) continue;
       cdir->cd();
 
       // --- write the tree
-      if (iR < fTreeRC.size() && ci < fTreeRC[iR].size() && fTreeRC[iR][ci]) {
-        fTreeRC[iR][ci]->Write();
+       if (iR < fTreeRC.size() && ciTree >= 0 && ciTree < (int)fTreeRC[iR].size() && fTreeRC[iR][ciTree]) {
+        fTreeRC[iR][ciTree]->Write();
       }
 
       // --- write the histograms (if they exist)
+      const size_t ci = size_t(c3);
       if (iR < fH2_den.size()) {
         if (ci < fH2_den[iR].size()     && fH2_den[iR][ci])     fH2_den[iR][ci]->Write();
         if (ci < fH2_num[iR].size()     && fH2_num[iR][ci])     fH2_num[iR][ci]->Write();
@@ -262,8 +262,6 @@ int StPicoHFJetMaker::MakeJets() {
   else if (fCentrality == 3 || fCentrality == 4)  c3 = 2; // 20-40%
   else if (fCentrality == 7 || fCentrality == 8)  c3 = 3; // 60-80%
   if (c3 == 0) {
-  // no folder for this centrality -> do nothing for this event
-  // (you can keep QA here if you want)
   // Reset Sump[] before returning
   for (int i = 0; i < 4800; i++) Sump[i] = 0.0;
   return kStOK;
@@ -271,7 +269,6 @@ int StPicoHFJetMaker::MakeJets() {
 
   const double w_event = fCentralityWeight * (mIsEmbedding ? fXsecWeight : 1.0);
   const int ci = c3;
-
 
   // MC tracks
   int noMCtracks = mPicoDst->numberOfMcTracks();
@@ -326,15 +323,10 @@ int StPicoHFJetMaker::MakeJets() {
 
 
     double towE = GetTowerCalibEnergy(iTow + 1); // get tower energy
-    TOWE = towE; // just keep track of the original energy for trigger
-                 // approximation
+    TOWE = towE; // just keep track of the original energy for trigger approximation
 
-    if (doTowErrPlus == true) {
-      towE = towE + 0.038 * towE;
-    }
-    if (doTowErrMinus == true) {
-      towE = towE - 0.038 * towE;
-    }
+    if (doTowErrPlus == true) {towE = towE + 0.038 * towE;}
+    if (doTowErrMinus == true) {towE = towE - 0.038 * towE;}
 
     towE -= fHadronCorr * Sump[iTow]; // subtract hadronic energy deposition
     if (towE < 0)
@@ -488,40 +480,49 @@ for (unsigned int i = 0; i < fR.size(); i++) {
     vector<MatchedJetPair> MatchedJets = MatchJetsEtaPhi(myMcJets, myRecoJets, fR[i]);
 
     for (const auto& mp : MatchedJets) {
-      fMcJet   = mp.first;
-      fRecoJet = mp.second;
-      fDeltaR  = fMcJet.deltaR(fRecoJet);
+  fMcJet   = mp.first;
+  fRecoJet = mp.second;
+  fDeltaR  = fMcJet.deltaR(fRecoJet);
 
-      // fill QA only when the jet exists (pt>=0 in your MyJet default means invalid)
-      const bool haveReco = (fRecoJet.pt >= 0);
-      const bool haveMC   = (fMcJet.pt   >= 0);
+  const bool haveReco = (fRecoJet.pt >= 0);
+  const bool haveMC   = (fMcJet.pt   >= 0);
 
-    if (haveReco) {
-  if (hDen) hDen->Fill(fRecoJet.pt_corr, fRecoJet.pt_lead, w_event);
-  if (eventHasHighTower && hNum)
-      hNum->Fill(fRecoJet.pt_corr, fRecoJet.pt_lead, w_event);
-  if (hReco) hReco->Fill(fRecoJet.pt_corr, w_event);
-}
-if (haveMC && hMc) hMc->Fill(fMcJet.pt, w_event);
-if (haveReco && haveMC && hRecoMc)
-  hRecoMc->Fill(fMcJet.pt, fRecoJet.pt_corr, w_event);
+  if (haveReco) {
+    if (hDen) hDen->Fill(fRecoJet.pt_corr, fRecoJet.pt_lead, w_event);
 
-if (jetTree) jetTree->Fill();
-    } // end loop over matched jets
+    // Num = only jets that contain the HT tower
+    if (fRecoJet.trigger_match && hNum)
+        hNum->Fill(fRecoJet.pt_corr, fRecoJet.pt_lead, w_event);
+
+    if (hReco) hReco->Fill(fRecoJet.pt_corr, w_event);
+  }
+  if (haveMC && hMc) hMc->Fill(fMcJet.pt, w_event);
+  if (haveReco && haveMC && hRecoMc)
+    hRecoMc->Fill(fMcJet.pt, fRecoJet.pt_corr, w_event);
+
+
+    if (!fRecoJet.trigger_match) {continue;}
+  if (jetTree) jetTree->Fill();
+} // end loop over matched jets
 
   } else {
     //==================== Data mode ===========================//
    for (const auto& rj : myRecoJets) {
-  fRecoJet = rj;
-  fMcJet   = MyJet();
+  fRecoJet = rj;            // contains trigger_match already
+  fMcJet   = MyJet();       // dummy
   fDeltaR  = -1.0;
 
-  // Fill everything; Num only if the event has a high-tower
+  // Denominator: all jets that pass selection
   if (hDen)  hDen->Fill (fRecoJet.pt_corr, fRecoJet.pt_lead, w_event);
-  if (eventHasHighTower && hNum)
-              hNum->Fill (fRecoJet.pt_corr, fRecoJet.pt_lead, w_event);
+
+  // Numerator: only jets that actually CONTAIN the HT tower
+  if (fRecoJet.trigger_match && hNum)
+      hNum->Fill (fRecoJet.pt_corr, fRecoJet.pt_lead, w_event);
+
   if (hReco) hReco->Fill(fRecoJet.pt_corr, w_event);
 
+
+  if (!fRecoJet.trigger_match) {continue;}
   if (jetTree) jetTree->Fill();
 } // end loop over reco jets (data)
   } // end embedding/data condition
