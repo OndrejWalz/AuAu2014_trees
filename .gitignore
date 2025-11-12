@@ -22,6 +22,9 @@ trees/job*
 *.package/
 *.zip
 
+# Container
+*.sif
+
 # Prerequisites
 *.d
 
