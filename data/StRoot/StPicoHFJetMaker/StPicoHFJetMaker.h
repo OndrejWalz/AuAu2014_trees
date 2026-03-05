@@ -111,7 +111,6 @@ public:
   void setDoTowErrMinus(bool val);
   void setDoTrackErr(bool val);
 
-
 protected:
   TString mInputFileName; //! *.list - MuDst or picoDst
 
@@ -126,7 +125,12 @@ private:
   float fCentralityWeight;
 
   int fRunNumber;
-  
+  int fEventId;
+
+  Float_t fMcSumPt; 
+
+  Int_t fRefMult;
+
   vector<float> fR;
   
   bool mIsEmbedding = true; // true for embedding, false for data
@@ -134,6 +138,8 @@ private:
   float fRBg;
   float fGhostMaxrap;
   float fJetPtMin;
+
+  std::vector<double> fAcuts;  // minimum jet area per R
 
   int nJetsRemove;
   unsigned int mMcJetType;
@@ -180,7 +186,7 @@ private:
   // store 3-class mapping per event (0=undef, 1=central, 2=midcentral, 3=peripheral)
   int fCentrality3;
 
-  std::vector<std::vector<TH2D*>> fH2_den, fH2_num, fH2_reco_mc;
+  std::vector<std::vector<TH2D*>> fH2_den, fH2_num, fH2_reco_mc, fH2_reco_matched;
   std::vector<std::vector<TH1D*>> fH1_reco, fH1_mc;
 
   // -- ADD USER MEMBERS HERE -------------------

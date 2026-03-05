@@ -141,21 +141,28 @@ Int_t StPicoJetMaker::Make() {
     // -- Fill vectors of particle types
     if (mMakerMode == StPicoJetMaker::kWrite ||
         mMakerMode == StPicoJetMaker::kAnalyze) {
-      for (unsigned short iTrack = 0; iTrack < nTracks; ++iTrack) {
-        StPicoTrack *trk = mPicoDst->track(iTrack);
+        TH1D* hDca = (TH1D*)mOutList->FindObject("hTrackDca");
+        TH1I* hNHits = (TH1I*)mOutList->FindObject("hTrackNHitsFit");
 
-        // if (!trk || !mPicoCuts->isGoodTrack(trk)) continue;
-        // good primary tracks only
-        double pTtrack = trk->pMom().Perp(); // using primary tracks
+        for (unsigned short iTrack = 0; iTrack < nTracks; ++iTrack) {
+          StPicoTrack *trk = mPicoDst->track(iTrack);
+          if (!trk) continue;
 
-        if (pTtrack > 30)
-          return kStOK; // throw out events with trk > 30 GeV/c
+          double pTtrack = trk->pMom().Perp();
+          if (pTtrack > 30) return kStOK;  // keep your veto
 
-        if (!trk || !mPicoCuts->isGoodPrimaryTrack(trk))
-          continue;
+          // Fill "full" distributions BEFORE your track cuts
+          double dca = (mPrimVtx - trk->origin()).Mag();
+          int nHitsFit = trk->nHitsFit();
 
-        mIdxPicoParticles.push_back(iTrack);
-      }
+          if (hDca) hDca->Fill(dca);
+          if (hNHits) hNHits->Fill(nHitsFit);
+
+          // Now apply cuts for jet constituents
+          if (!mPicoCuts->isGoodPrimaryTrack(trk)) continue;
+
+          mIdxPicoParticles.push_back(iTrack);
+        }
     }
     // -- call method of daughter class
     //// Uncomment here to include jets again
@@ -226,7 +233,7 @@ void StPicoJetMaker::initializeEventStats() {
   float refmultmin = 0;
   float refmultmax = 650;
 
-  int zbins = 50;
+  int zbins = 250;
   float zmin = -50;
   float zmax = 50;
 
@@ -260,7 +267,7 @@ void StPicoJetMaker::initializeEventStats() {
                          refmultmin, refmultmax));
   mOutList->Add(
       new TH1F("hzvertex", "z-position of primary vertex", zbins, zmin, zmax));
-  mOutList->Add(new TH1D("hdeltaz", "zTPC-zVPD; #Delta [cm]", 80, -10, 10));
+  mOutList->Add(new TH1D("hdeltaz", "zTPC-zVPD; #Delta [cm]", 250, -10, 10));
   mOutList->Add(new TH2D("hz_refmult", "zvertex vs refmult; z [cm]; refMult",
                          zbins, zmin, zmax, refmultbins, refmultmin,
                          refmultmax));
@@ -273,13 +280,16 @@ void StPicoJetMaker::initializeEventStats() {
                          refmultmin, refmultmax));
   mOutList->Add(new TH1F("hzvertex_acc", "z-position of primary vertex", zbins,
                          zmin, zmax));
-  mOutList->Add(new TH1D("hdeltaz_acc", "zTPC-zVPD; #Delta [cm]", 80, -10, 10));
+  mOutList->Add(new TH1D("hdeltaz_acc", "zTPC-zVPD; #Delta [cm]", 250, -10, 10));
   mOutList->Add(new TH2D("hz_refmult_acc",
                          "zvertex vs refmult; z [cm]; refMult", zbins, zmin,
                          zmax, refmultbins, refmultmin, refmultmax));
 
   mOutList->Add(new TH1I("hrunId_acc", "accepted events runId", 90913, 15076101,
                          15167014)); // 15076101−15167014
+  mOutList->Add(new TH1D("hTrackDca", "Tracks DCA (to PV);DCA (cm);counts", 400, 0.0, 5.0));
+  mOutList->Add(new TH1I("hTrackNHitsFit", "Tracks nHitsFit;nHitsFit;counts", 50, 0, 50));
+
 }
 
 //________________________________________________________________________

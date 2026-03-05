@@ -33,7 +33,8 @@ class StChain;
 void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
                        const unsigned int makerMode = 0,
                        TString treeName = "picoDst",
-                       bool isEmbedding = true){
+                       bool isEmbedding = true,
+                       bool storeOnlyTrigOrMc = false){
 
 #ifdef __CINT__
   gROOT->LoadMacro("loadSharedHFLibraries.C");
@@ -96,7 +97,6 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   stPicoHFJetMaker->setTreeName(treeName);
   stPicoHFJetMaker->setMcMode(false);
   stPicoHFJetMaker->setIsEmbedding(isEmbedding);
-
 
   StPicoCuts *picoCuts = new StPicoCuts("PicoCuts");
   stPicoHFJetMaker->setPicoCuts(picoCuts);
@@ -177,11 +177,9 @@ void runPicoHFJetMaker(TString inputFile, TString outputFile = "output",
   stPicoHFJetMaker->setNJetsRemove(1);
   stPicoHFJetMaker->setR_bg(0.3);
   stPicoHFJetMaker->setHadronCorr(1.0);
-  stPicoHFJetMaker->setTriggerThreshold(
-      18); //~4.2 GeV is the HT2 threshold = 18 ADC
+  stPicoHFJetMaker->setTriggerThreshold(18); //~4.2 GeV is the HT2 threshold = 18 ADC
   stPicoHFJetMaker->setMaxNeutralFraction(0.95); // default
-  stPicoHFJetMaker->setMaxDcaZHadronCorr(
-      3.0); // cm, max DCA_z for global tracks used for hadronic correction
+  stPicoHFJetMaker->setMaxDcaZHadronCorr(3.0); // cm, max DCA_z for global tracks used for hadronic correction
 
   // Systematics setters
   stPicoHFJetMaker->setDoTowErrPlus(false);

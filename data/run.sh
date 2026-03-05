@@ -3,6 +3,9 @@
 setup 64b
 cons
 
+kinit
+aklog
+
 run_mode="$1"  # "embedding", "data", or empty for both
 
 embedding_lists=(

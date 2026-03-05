@@ -1,24 +1,74 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- edit these three if your layout changes ---
-BASE="/gpfs/mnt/gpfs01/star/pwg/svomich/JetsTrees"
-SIF="/gpfs/mnt/gpfs01/star/pwg/prozorov/singularity/roounfold.sif"
-MACRO="/gpfs/mnt/gpfs01/star/pwg/svomich/JetsTrees/analysis/unfolding/unfold.cxx"
-# ----------------------------------------------
+########################
+# Paths relative to this script
+########################
 
-IN="${1:-$BASE/trees/merged_all/embedding_merged.root}"
-OUT="${2:-$BASE/analysis/unfolding/out}"
+# Directory where *this* script lives (analysis/unfolding)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ ! -f "$IN" ]]; then
-  echo "Input not found: $IN"
-  exit 1
+# JetsTrees base (two levels up)
+BASE="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+# Files relative to this structure
+SIF="${SCRIPT_DIR}/roounfold.sif"              # analysis/unfolding/roounfold.sif
+MACRO="${SCRIPT_DIR}/unfold_embedding.cxx"    # analysis/unfolding/unfold_embedding.cxx
+
+########################
+# Arguments
+########################
+
+# 1st arg: method (Bayes or SVD)
+METHOD="${1:-Bayes}"
+
+# 2nd arg: input (either basename in trees/ or an absolute path)
+if [[ $# -ge 2 ]]; then
+  if [[ "$2" = /* ]]; then
+    INPUT="$2"
+  else
+    INPUT="${BASE}/trees/$2"
+  fi
+else
+  INPUT="${BASE}/trees/embedding_merged.root"
 fi
 
-mkdir -p "$OUT"
+# 3rd arg: output directory (default: analysis/unfolding/out_embedding under BASE)
+OUT_DIR="${3:-${SCRIPT_DIR}/out_embedding_${METHOD}}"
 
-apptainer exec -e -B /gpfs/mnt/gpfs01 \
+########################
+# Checks
+########################
+
+echo "----------------------------------------"
+echo "Running unfolding"
+echo "Method     : $METHOD"
+echo "SCRIPT_DIR : $SCRIPT_DIR"
+echo "BASE       : $BASE"
+echo "SIF        : $SIF"
+echo "Macro      : $MACRO"
+echo "Input      : $INPUT"
+echo "Output dir : $OUT_DIR"
+echo "----------------------------------------"
+
+[[ -f "$SIF"   ]] || { echo "ERROR: SIF not found:   $SIF";   exit 1; }
+[[ -f "$MACRO" ]] || { echo "ERROR: MACRO not found: $MACRO"; exit 1; }
+[[ -f "$INPUT" ]] || { echo "ERROR: Input not found: $INPUT"; exit 1; }
+
+mkdir -p "$OUT_DIR"
+
+########################
+# Run inside container
+########################
+
+apptainer exec -e -B /gpfs01 \
   "$SIF" \
-  root -l -b -q 'gSystem->Load("libRooUnfold");' "$MACRO++(\"$IN\",\"$OUT\")"
+  root -l -b <<EOF
+gSystem->Load("libRooUnfold");
+.x ${MACRO}+("${INPUT}","${OUT_DIR}","${METHOD}");
+.q
+EOF
 
-
+echo "----------------------------------------"
+echo "Done."
+echo "----------------------------------------"

@@ -1,15 +1,16 @@
-# Analysis of inclusive jets in $AuAu$ collisions at $\sqrt{s_{NN}} = 200$ GeV
+# Analysis of inclusive jets in Au+Au collisions at $\sqrt{s_{\textrm{NN}}} = 200$ GeV
 
 ## Tree production
 `data/` folder contains the jet algorithm and tree production.
 
 
 ### Usage and setup
----
-The project should be compiled with `64-bit` architecture using command:
+- The project should be compiled with `64-bit` architecture using command:
 ```bash
 setup 64b
 ```
+- For now the code needs to be run on old rcas60XX machines, one exception is unfolding, which needs to be executed in starsub0X machines
+
 #### FastJet
 One does not have to use own `fastjet` installation. There already exists compiled version -> one may check it using
 ```bash
@@ -67,13 +68,22 @@ The output tree dependent on the input picoDST file (embedding or real data) con
 - `mc_neutral_fraction`: Fraction of neutral constituents in the jet
 - `deltaR`: Delta R between reconstructed and Monte Carlo jet
 
-
-
+## Tree merging
+- Output from jobs can be merged in `trees/` folder, all of the scripts select the newest job output and merge contents from production
+- To merge data, use `./merge_data_all.sh`
+- To merge all embedding into one file, use `./merge_embedding_all.sh`
+- To separately merge p_T^hat bins, use `./merge_pThatbins.sh`
+- To merge different job output, use `./merge_data_all.sh ../data/submit/2025-11-28`, similarly for embedding
+- Merged file will be generated in this folder
 
 ## Analysis
 `analysis/` contains the analysis of the produced trees like filling histograms, unfolding, drawing
 
 ### Histogram filling
+- Some of the QA histograms can be created by using `histograms/` folder
+- Execute `make_hists.C` using `./run_hists.sh`
+
+### Efficiencies
 
 ### Unfolding
 The unfolding is performed using the [`RooUnfold`](https://gitlab.cern.ch/RooUnfold/RooUnfold) package. The unfolding procedure - `analysis/unfolding/` 
