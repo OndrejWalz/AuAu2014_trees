@@ -8,6 +8,8 @@ trees/job*
 
 *.log
 *.pdf
+*.png
+*.jpg
 *.out
 *.err
 *.csh
