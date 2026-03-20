@@ -326,101 +326,115 @@ void make_efficiencies(const char *infile  = "embedding_merged.root",
                 // -----------------------------------------------------------
 
                 // --- Matching efficiency in TRUTH binning ---
-                TH1D *h_match_mc_den_reb = (TH1D*)h_match_mc_den[it]->Rebin(
-                    nbins_truth,
-                    Form("h_match_mc_den_reb_%s", tagDirName.Data()),
-                    bin_truth_edges);
+                TH1D *h_match_den_truth = (TH1D*)h_match_mc_den[it]->Rebin(
+                    nbins_truth, "h_match_den_truth", bin_truth_edges);
+                h_match_den_truth->SetDirectory(0);
 
-                TH1D *h_match_mc_num_reb = (TH1D*)h_match_mc_num[it]->Rebin(
-                    nbins_truth,
-                    Form("h_match_mc_num_reb_%s", tagDirName.Data()),
-                    bin_truth_edges);
+                TH1D *h_match_num_truth = (TH1D*)h_match_mc_num[it]->Rebin(
+                    nbins_truth, "h_match_num_truth", bin_truth_edges);
+                h_match_num_truth->SetDirectory(0);
 
-                TH1D *h_match_mc_eff_reb = (TH1D*)h_match_mc_num_reb->Clone(
-                    Form("h_match_mc_eff_reb_%s", tagDirName.Data()));
-                h_match_mc_eff_reb->SetTitle("");
-                h_match_mc_eff_reb->Divide(h_match_mc_num_reb,
-                                        h_match_mc_den_reb,
-                                        1.0, 1.0, "b");
-                h_match_mc_eff_reb->SetDirectory(0);
+                TH1D *h_match_eff_truth = (TH1D*)h_match_num_truth->Clone("h_match_eff_truth");
+                h_match_eff_truth->SetDirectory(0);
+                h_match_eff_truth->Divide(h_match_num_truth, h_match_den_truth, 1.0, 1.0, "b");
 
+                // now ONLY one copy will be written
+                outTag[it]->cd();
+                h_match_den_truth->Write("h_match_den_truth", TObject::kOverwrite);
+                h_match_num_truth->Write("h_match_num_truth", TObject::kOverwrite);
+                h_match_eff_truth->Write("h_match_eff_truth", TObject::kOverwrite);
+
+                // QA plot
                 TCanvas* cMatch = new TCanvas(
                     Form("cMatch_%s", tagDirName.Data()),
-                    "Matching efficiency (rebinned)", 800, 600);
-                h_match_mc_eff_reb->SetLineColor(kBlue+1);
-                h_match_mc_eff_reb->SetMarkerColor(kBlue+1);
-                h_match_mc_eff_reb->SetMarkerStyle(20);
-                h_match_mc_eff_reb->GetXaxis()->SetTitle("#it{p}_{T}^{MC} (GeV)");
-                h_match_mc_eff_reb->GetYaxis()->SetTitle("Matching efficiency");
-                h_match_mc_eff_reb->Draw("E1");
-                h_match_mc_eff_reb->SetStats(0);
+                    "Matching efficiency (truth binning)", 800, 600);
+
+                h_match_eff_truth->SetLineColor(kBlue+1);
+                h_match_eff_truth->SetMarkerColor(kBlue+1);
+                h_match_eff_truth->SetMarkerStyle(20);
+                h_match_eff_truth->GetXaxis()->SetTitle("#it{p}_{T}^{MC} (GeV)");
+                h_match_eff_truth->GetYaxis()->SetTitle("Matching efficiency");
+                h_match_eff_truth->SetStats(0);
+                h_match_eff_truth->Draw("E1");
+
                 cMatch->SaveAs(Form("QA_plots/QA_match_eff_%s.pdf", tagDirName.Data()));
+                cMatch->SaveAs(Form("QA_plots/QA_match_eff_%s.png", tagDirName.Data()));
                 delete cMatch;
 
                 // --- Trigger efficiency in MEASURED binning ---
-                TH1D *h_trig_den_reb = (TH1D*)h_trig_den[it]->Rebin(
-                    nbins_meas,
-                    Form("h_trig_den_reb_%s", tagDirName.Data()),
-                    bin_meas_edges);
+                TH1D *h_trig_den_reco = (TH1D*)h_trig_den[it]->Rebin(
+                    nbins_meas, "h_trig_den_reco", bin_meas_edges);
+                h_trig_den_reco->SetDirectory(0);
 
-                TH1D *h_trig_num_reb = (TH1D*)h_trig_num[it]->Rebin(
-                    nbins_meas,
-                    Form("h_trig_num_reb_%s", tagDirName.Data()),
-                    bin_meas_edges);
+                TH1D *h_trig_num_reco = (TH1D*)h_trig_num[it]->Rebin(
+                    nbins_meas, "h_trig_num_reco", bin_meas_edges);
+                h_trig_num_reco->SetDirectory(0);
 
-                TH1D *h_trig_eff_reb = (TH1D*)h_trig_num_reb->Clone(
-                    Form("h_trig_eff_reb_%s", tagDirName.Data()));
-                h_trig_eff_reb->SetTitle("");
-                h_trig_eff_reb->Divide(h_trig_num_reb,
-                                    h_trig_den_reb,
-                                    1.0, 1.0, "b");
-                h_trig_eff_reb->SetDirectory(0);
+                TH1D *h_trig_eff_reco = (TH1D*)h_trig_num_reco->Clone("h_trig_eff_reco");
+                h_trig_eff_reco->SetDirectory(0);
+                h_trig_eff_reco->SetTitle("");
+                h_trig_eff_reco->Divide(h_trig_num_reco, h_trig_den_reco, 1.0, 1.0, "b");
 
+                // write single copy
+                outTag[it]->cd();
+                h_trig_den_reco->Write("h_trig_den_reco", TObject::kOverwrite);
+                h_trig_num_reco->Write("h_trig_num_reco", TObject::kOverwrite);
+                h_trig_eff_reco->Write("h_trig_eff_reco", TObject::kOverwrite);
+
+                // QA plot
                 TCanvas* cTrig = new TCanvas(
                     Form("cTrig_%s", tagDirName.Data()),
-                    "Trigger efficiency (rebinned)", 800, 600);
-                h_trig_eff_reb->SetLineColor(kRed+1);
-                h_trig_eff_reb->SetMarkerColor(kRed+1);
-                h_trig_eff_reb->SetMarkerStyle(20);
-                h_trig_eff_reb->GetXaxis()->SetTitle("#it{p}_{T}^{reco,corr} (GeV)");
-                h_trig_eff_reb->GetYaxis()->SetTitle("Trigger efficiency");
-                h_trig_eff_reb->GetXaxis()->SetRangeUser(-20, 60);
-                h_trig_eff_reb->Draw("E1");
-                h_trig_eff_reb->SetStats(0);
+                    "Trigger efficiency (measured binning)", 800, 600);
+
+                h_trig_eff_reco->SetLineColor(kRed+1);
+                h_trig_eff_reco->SetMarkerColor(kRed+1);
+                h_trig_eff_reco->SetMarkerStyle(20);
+                h_trig_eff_reco->GetXaxis()->SetTitle("#it{p}_{T}^{reco,corr} (GeV)");
+                h_trig_eff_reco->GetYaxis()->SetTitle("Trigger efficiency");
+                h_trig_eff_reco->GetXaxis()->SetRangeUser(-20, 60);
+                h_trig_eff_reco->SetStats(0);
+                h_trig_eff_reco->Draw("E1");
+
                 cTrig->SaveAs(Form("QA_plots/QA_trig_eff_%s.pdf", tagDirName.Data()));
+                cTrig->SaveAs(Form("QA_plots/QA_trig_eff_%s.png", tagDirName.Data()));
                 delete cTrig;
 
                 // --- Purity in MEASURED binning ---
-                TH1D *h_pur_den_reb = (TH1D*)h_pur_den[it]->Rebin(
-                    nbins_meas,
-                    Form("h_pur_den_reb_%s", tagDirName.Data()),
-                    bin_meas_edges);
+                TH1D *h_pur_den_reco = (TH1D*)h_pur_den[it]->Rebin(
+                    nbins_meas, "h_pur_den_reco", bin_meas_edges);
+                h_pur_den_reco->SetDirectory(0);
 
-                TH1D *h_pur_num_reb = (TH1D*)h_pur_num[it]->Rebin(
-                    nbins_meas,
-                    Form("h_pur_num_reb_%s", tagDirName.Data()),
-                    bin_meas_edges);
+                TH1D *h_pur_num_reco = (TH1D*)h_pur_num[it]->Rebin(
+                    nbins_meas, "h_pur_num_reco", bin_meas_edges);
+                h_pur_num_reco->SetDirectory(0);
 
-                TH1D *h_pur_eff_reb = (TH1D*)h_pur_num_reb->Clone(
-                    Form("h_pur_eff_reb_%s", tagDirName.Data()));
-                h_pur_eff_reb->SetTitle("");
-                h_pur_eff_reb->Divide(h_pur_num_reb,
-                                    h_pur_den_reb,
-                                    1.0, 1.0, "b");
-                h_pur_eff_reb->SetDirectory(0);
+                TH1D *h_pur_eff_reco = (TH1D*)h_pur_num_reco->Clone("h_pur_eff_reco");
+                h_pur_eff_reco->SetDirectory(0);
+                h_pur_eff_reco->SetTitle("");
+                h_pur_eff_reco->Divide(h_pur_num_reco, h_pur_den_reco, 1.0, 1.0, "b");
 
+                // write single copy
+                outTag[it]->cd();
+                h_pur_den_reco->Write("h_pur_den_reco", TObject::kOverwrite);
+                h_pur_num_reco->Write("h_pur_num_reco", TObject::kOverwrite);
+                h_pur_eff_reco->Write("h_pur_eff_reco", TObject::kOverwrite);
+                
+                // QA plot
                 TCanvas* cPur = new TCanvas(
                     Form("cPur_%s", tagDirName.Data()),
-                    "Purity (rebinned)", 800, 600);
-                h_pur_eff_reb->SetLineColor(kGreen+2);
-                h_pur_eff_reb->SetMarkerColor(kGreen+2);
-                h_pur_eff_reb->SetMarkerStyle(20);
-                h_pur_eff_reb->GetXaxis()->SetTitle("#it{p}_{T}^{reco,corr} (GeV)");
-                h_pur_eff_reb->GetYaxis()->SetTitle("Purity");
-                h_pur_eff_reb->GetXaxis()->SetRangeUser(-20, 60);
-                h_pur_eff_reb->Draw("E1");
-                h_pur_eff_reb->SetStats(0);
+                    "Purity (measured binning)", 800, 600);
+
+                h_pur_eff_reco->SetLineColor(kGreen+2);
+                h_pur_eff_reco->SetMarkerColor(kGreen+2);
+                h_pur_eff_reco->SetMarkerStyle(20);
+                h_pur_eff_reco->GetXaxis()->SetTitle("#it{p}_{T}^{reco,corr} (GeV)");
+                h_pur_eff_reco->GetYaxis()->SetTitle("Purity");
+                h_pur_eff_reco->GetXaxis()->SetRangeUser(-20, 60);
+                h_pur_eff_reco->SetStats(0);
+                h_pur_eff_reco->Draw("E1");
+
                 cPur->SaveAs(Form("QA_plots/QA_purity_%s.pdf", tagDirName.Data()));
+                cPur->SaveAs(Form("QA_plots/QA_purity_%s.png", tagDirName.Data()));
                 delete cPur;
             }
         } // end loop over centrality dirs

@@ -28,13 +28,14 @@ using std::endl;
 
 
 
-static const double kTestFrac = 0.50;     // 50/50 split
+static const double kTestFrac = 0.50;  // 50/50 split
 static const UInt_t kSeed     = 12345;    // deterministic split
 
 static const double kPtLeadCuts[] = {0.0, 5.0, 7.0, 9.0};
 static const int    kNPtLeadCuts  = sizeof(kPtLeadCuts)/sizeof(kPtLeadCuts[0]);
 
 // measured & truth binning
+//----------------------------------------------------------------- original binning 
 static const int nbins_meas = 24;
 static const double bin_meas_edges[nbins_meas+1] = {
   -100,-80,-60,-40,-20,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15,17.5,
@@ -45,6 +46,54 @@ static const int nbins_truth = 10;
 static const double bin_truth_edges[nbins_truth+1] = {
   0,5,10,15,20,25,30,35,40,50,60
 };
+//----------------------------------------------------------------- bin choice: 1
+
+// static const int nbins_truth = 7;
+// static const double bin_truth_edges[nbins_truth+1] = {
+//   0, 5, 10, 15, 20, 30, 40, 60
+// };
+
+
+// static const int nbins_meas = 18;
+// static const double bin_meas_edges[nbins_meas+1] = {
+//   -100,-80,-60,-40,-20,-10,-5,-2.5,0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60
+// };
+
+// --------------------------------------------------------------bin choice: 2
+
+// static const int nbins_truth = 10;
+// static const double bin_truth_edges[nbins_truth+1] = {
+//   0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60
+// };
+
+
+// static const int nbins_meas = 18;
+// static const double bin_meas_edges[nbins_meas+1] = {
+//   -100,-80,-60,-40,-20,-10,-5,-2.5,0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60
+// };
+// --------------------------------------------------------------bin choice: 3 (same as 2 but with finer low-pt bins)
+// static const int nbins_truth = 10;
+// static const double bin_truth_edges[nbins_truth+1] = {
+//   0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60
+// };
+
+
+// static const int nbins_meas = 18;
+// static const double bin_meas_edges[nbins_meas+1] = {
+//   -100,-80,-60,-40,-20,-10,-5,-2.5,0, 3, 6, 9, 12, 15, 20, 30, 40, 50, 60
+// };
+// --------------------------------------------------------------bin choice: 4
+// static const int nbins_truth = 10;
+// static const double bin_truth_edges[nbins_truth+1] = {
+//   0, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60
+// };
+
+
+// static const int nbins_meas = 23;
+// static const double bin_meas_edges[nbins_meas+1] = {
+//   -100,-80,-60,-40,-20,-10,-5,-2.5,0, 2, 4, 6, 8, 10, 12.5, 15, 17.5, 20, 25 , 30, 35, 40, 50, 60
+// };
+
 
 static const vector<string> kCentralities =
   {"CENT_0_10", "MID_20_40", "PERI_60_80"};
@@ -578,7 +627,7 @@ void unfold_embedding(const char* inputFile,
           cout << "Doing SVD unfolding..." << endl;
           //const int kRegValues[] = {2, 3, 4, 5, 6, 7, 8, 9};
           //const int kRegValues[] = {2, 3, 4, 5, 6};
-          const int kRegValues[] = {3, 4, 5, 6, 7};
+          const int kRegValues[] = {3, 4, 5};
           const int nSVD = sizeof(kRegValues)/sizeof(kRegValues[0]);
 
           vector<TH1D*> unfoldedSVD(nSVD, nullptr);
@@ -587,6 +636,7 @@ void unfold_embedding(const char* inputFile,
             RooUnfoldSvd u(&response_closure, hMeasTest, reg);
             // optionally switch on regularization via SVD settings:
             // u.SetRegParam(reg); // not necessary with ctor but shown for clarity
+            
             TH1D* hunf = dynamic_cast<TH1D*>(u.Hunfold());
             if (!hunf) {
               cout << "[error] SVD unfolding failed for reg=" << reg << endl;
@@ -595,6 +645,23 @@ void unfold_embedding(const char* inputFile,
             hunf->SetDirectory(nullptr);
             hunf->SetName(Form("Unfolded_SVD_%s_reg%d", tag.c_str(), reg));
             unfoldedSVD[ir] = hunf;
+              // Now access diagnostics — Hunfold() must have been called first
+               auto* svdImpl = u.Impl();
+                if (svdImpl) {
+                    TVectorD sv = svdImpl->GetSV();
+                    cout << "=== Singular values (reg=" << reg << ") ===" << endl;
+                    for (int i = 0; i < sv.GetNrows(); i++)
+                        cout << Form("  Mode %2d : SV = %10.6e", i, sv[i]) << endl;
+
+                    TH1* d = svdImpl->GetD();
+                    if (d) {
+                        cout << "=== d-vector (reg=" << reg << ") ===" << endl;
+                        for (int i = 1; i <= d->GetNbinsX(); i++)
+                            cout << Form("  Mode %2d : |d_i| = %10.6e", i, fabs(d->GetBinContent(i))) << endl;
+                    } else {
+                        cout << "[note] d still null after Hunfold() for reg=" << reg << endl;
+                    }
+                }
 
               // // Access the internal SVD implementation
               // auto* impl = u.Impl();

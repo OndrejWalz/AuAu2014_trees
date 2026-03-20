@@ -27,7 +27,7 @@ if [[ $# -ge 1 ]]; then
     BAYES_INPUT="${SCRIPT_DIR}/$1"
   fi
 else
-  BAYES_INPUT="${SCRIPT_DIR}/out_embedding_BAYES/responses_embedding.root"
+  BAYES_INPUT="${SCRIPT_DIR}/out_embedding_BAYES_original/responses_embedding.root"
 fi
 
 # 2nd arg: SVD input file (basename in out_embedding_SVD/ or absolute path)
@@ -38,11 +38,11 @@ if [[ $# -ge 2 ]]; then
     SVD_INPUT="${SCRIPT_DIR}/$2"
   fi
 else
-  SVD_INPUT="${SCRIPT_DIR}/out_embedding_SVD/responses_embedding.root"
+  SVD_INPUT="${SCRIPT_DIR}/out_embedding_SVD_original/responses_embedding.root"
 fi
 
 # 3rd arg: output directory
-OUT_DIR="${3:-${SCRIPT_DIR}/out_comparison}"
+OUT_DIR="${3:-${SCRIPT_DIR}/out_comparison_Bayes4}"
 
 ########################
 # Checks

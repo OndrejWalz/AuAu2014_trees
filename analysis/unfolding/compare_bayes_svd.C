@@ -52,7 +52,7 @@ static const int kSVDRegs[]  = {3, 4, 5};
 static const int kNSVDRegs   = sizeof(kSVDRegs)/sizeof(kSVDRegs[0]);
 
 // Which Bayes iteration and SVD k to use for the bottom-pad direct ratio (0-based index).
-static const int kBestBayesIdx = kNBayesIters - 1;  // iter 7
+static const int kBestBayesIdx = kNBayesIters - 3;  // 
 static const int kBestSVDIdx   = kNSVDRegs    - 1;  // k = 5
 
 // Truth binning

@@ -20,12 +20,12 @@ MACRO="${SCRIPT_DIR}/unfold_embedding.cxx"    # analysis/unfolding/unfold_embedd
 ########################
 
 # 1st arg: method (Bayes or SVD)
-METHOD="${1:-Bayes}"
+METHOD="${1:-BAYES}"
 
 # 2nd arg: input (either basename in trees/ or an absolute path)
 if [[ $# -ge 2 ]]; then
   if [[ "$2" = /* ]]; then
-    INPUT="$2"
+    INPUT="$2"  
   else
     INPUT="${BASE}/trees/$2"
   fi
@@ -34,7 +34,7 @@ else
 fi
 
 # 3rd arg: output directory (default: analysis/unfolding/out_embedding under BASE)
-OUT_DIR="${3:-${SCRIPT_DIR}/out_embedding_${METHOD}}"
+OUT_DIR="${3:-${SCRIPT_DIR}/out_embedding_${METHOD}_origina}l"
 
 ########################
 # Checks
@@ -65,7 +65,7 @@ apptainer exec -e -B /gpfs01 \
   "$SIF" \
   root -l -b <<EOF
 gSystem->Load("libRooUnfold");
-.x ${MACRO}+("${INPUT}","${OUT_DIR}","${METHOD}");
+.x ${MACRO}+("${INPUT}","${OUT_DIR}",")"${METHOD};
 .q
 EOF
 

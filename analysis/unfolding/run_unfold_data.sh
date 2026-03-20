@@ -20,26 +20,34 @@ MACRO="${SCRIPT_DIR}/unfold_data.cxx"
 # Arguments
 ########################
 
-# 1st arg: data input (either absolute path or basename under ${BASE}/trees)
-if [[ $# -ge 1 ]]; then
-  if [[ "$1" = /* ]]; then
-    INPUT="$1"
+# 1st arg: method (BAYES or SVD)
+METHOD="${1:-BAYES}"
+
+# 2nd arg: data input (either absolute path or basename under ${BASE}/trees)
+if [[ $# -ge 2 ]]; then
+  if [[ "$2" = /* ]]; then
+    INPUT="$2"
   else
-    INPUT="${BASE}/trees/$1"
+    INPUT="${BASE}/trees/$2"
   fi
 else
   INPUT="${BASE}/trees/data_merged.root"
 fi
 
-# 2nd arg: RESPONSE ROOT FILE (single file with all tag directories)
+# 3rd arg: EFFICIENCIES ROOT FILE
+# default: analysis/efficiencies/efficiencies.root (based on your folder layout)
+EFF_FILE="${3:-${BASE}/analysis/efficiencies/efficiencies.root}"
+
+# 4th arg: RESPONSE ROOT FILE (single file with all tag directories) diferrent for SVD or BAYES embedding unfolding
 # default: responses from embedding under unfolding/out_embedding
-RESP_FILE="${2:-${SCRIPT_DIR}/out_embedding/responses_embedding.root}"
+RESP_FILE="${4:-${SCRIPT_DIR}/out_embedding_${METHOD}/responses_embedding.root}"
 
-# 3rd arg: output directory for unfolded data spectra
-OUT_DIR="${3:-${SCRIPT_DIR}/out_data}"
 
-# 4th arg: number of Bayes iterations
-NITER="${4:-4}"
+# 5th arg: output directory for unfolded data spectra
+OUT_DIR="${5:-${SCRIPT_DIR}/out_data_${METHOD}_ME}"
+
+# 6th arg: number of Bayes iterations
+NITER="${6:-4}"
 
 ########################
 # Checks
@@ -55,6 +63,7 @@ echo "Input data  : $INPUT"
 echo "Resp. file  : $RESP_FILE"
 echo "Output dir  : $OUT_DIR"
 echo "Iterations  : $NITER"
+echo "Method      : $METHOD"
 echo "----------------------------------------"
 
 [[ -f "$SIF"       ]] || { echo "ERROR: SIF not found:       $SIF";       exit 1; }
@@ -73,7 +82,7 @@ apptainer exec -e -B /gpfs01 \
   "$SIF" \
   root -l -b <<EOF
 gSystem->Load("libRooUnfold");
-.x ${MACRO}+("${INPUT}","${RESP_FILE}","${OUT_DIR}",${NITER});
+.x ${MACRO}+("${INPUT}","${RESP_FILE}","${EFF_FILE}","${OUT_DIR}","${METHOD}",${NITER});
 .q
 EOF
 
