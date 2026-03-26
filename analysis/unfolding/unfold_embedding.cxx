@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <cmath>
 
 using std::string;
 using std::vector;
@@ -25,27 +26,27 @@ using std::cout;
 using std::endl;
 
 // ------------------------- config -----------------------------
-
-
-
 static const double kTestFrac = 0.50;  // 50/50 split
 static const UInt_t kSeed     = 12345;    // deterministic split
 
 static const double kPtLeadCuts[] = {0.0, 5.0, 7.0, 9.0};
 static const int    kNPtLeadCuts  = sizeof(kPtLeadCuts)/sizeof(kPtLeadCuts[0]);
 
-// measured & truth binning
-// //----------------------------------------------------------------- original binning 
-// static const int nbins_meas = 24;
-// static const double bin_meas_edges[nbins_meas+1] = {
-//   -100,-80,-60,-40,-20,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15,17.5,
-//   20,22.5,25,27.5,30,35,40,50,60
-// };
+static const double kMinSignif = std::sqrt(10.0);  // content/error > sqrt(10)
+static const bool   kSavePtHatDebug = true;
 
-// static const int nbins_truth = 10;
-// static const double bin_truth_edges[nbins_truth+1] = {
-//   0,5,10,15,20,25,30,35,40,50,60
-// };
+// measured & truth binning
+//----------------------------------------------------------------- original binning 
+static const int nbins_meas = 24;
+static const double bin_meas_edges[nbins_meas+1] = {
+  -100,-80,-60,-40,-20,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15,17.5,
+  20,22.5,25,27.5,30,35,40,50,60
+};
+
+static const int nbins_truth = 10;
+static const double bin_truth_edges[nbins_truth+1] = {
+  0,5,10,15,20,25,30,35,40,50,60
+};
 //----------------------------------------------------------------- bin choice: 1
 
 // static const int nbins_truth = 7;
@@ -93,18 +94,6 @@ static const int    kNPtLeadCuts  = sizeof(kPtLeadCuts)/sizeof(kPtLeadCuts[0]);
 // static const double bin_meas_edges[nbins_meas+1] = {
 //   -100,-80,-60,-40,-20,-10,-5,-2.5,0, 2, 4, 6, 8, 10, 12.5, 15, 17.5, 20, 25 , 30, 35, 40, 50, 60
 // };
-
-//--------------------------------------------------------------bin choice: 4
-static const int nbins_truth = 10;
-static const double bin_truth_edges[nbins_truth+1] = {
-  0, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60
-};
-
-
-static const int nbins_meas = 1;
-static const double bin_meas_edges[nbins_meas+1] = {
- -100, 70
-};
 
 
 static const vector<string> kCentralities =
@@ -262,7 +251,6 @@ void unfold_embedding(const char* inputFile,
       for (int ic = 0; ic < kNPtLeadCuts; ++ic) {
         const double cut = kPtLeadCuts[ic];
         const string tag     = R + "_" + C + Form("_ptlead%.0f", cut);
-        const string tagfile = tag;
 
         cout << "  >> pTlead >= " << cut << " GeV  (tag " << tag << ")\n";
 
@@ -312,6 +300,85 @@ void unfold_embedding(const char* inputFile,
             nbins_truth, bin_truth_edges);
         hPrior->SetDirectory(0);
 
+        TH1D* hTrueFull_ptHat[kNPthatBins];
+        TH1D* hMeasFull_ptHat[kNPthatBins];
+        TH2D* hRespFull_ptHat[kNPthatBins];
+
+        TH1D* hTrueTrain_ptHat[kNPthatBins];
+        TH1D* hMeasTrain_ptHat[kNPthatBins];
+        TH2D* hRespTrain_ptHat[kNPthatBins];
+
+        TH1D* hTrueTest_ptHat[kNPthatBins];
+        TH1D* hMeasTest_ptHat[kNPthatBins];
+
+        TH1D* hPrior_ptHat[kNPthatBins];
+
+        TH1D* hTruthMask_ptHat[kNPthatBins];
+        TH1D* hTruthSignif_ptHat[kNPthatBins];
+
+        for (int ip = 0; ip < kNPthatBins; ++ip) {
+          const TString s = Form("_pthat%d_%s", ip, tag.c_str());
+
+          hTrueFull_ptHat[ip] = new TH1D(("hTrueFull" + s).Data(),
+              ";mc p_{T} [GeV];centrality-weighted yield",
+              nbins_truth, bin_truth_edges);
+
+          hMeasFull_ptHat[ip] = new TH1D(("hMeasFull" + s).Data(),
+              ";reco p_{T}^{corr} [GeV];centrality-weighted yield",
+              nbins_meas, bin_meas_edges);
+
+          hRespFull_ptHat[ip] = new TH2D(("hRespFull" + s).Data(),
+              ";p_{T}^{reco,corr};p_{T}^{mc}",
+              nbins_meas, bin_meas_edges,
+              nbins_truth, bin_truth_edges);
+
+          hTrueTrain_ptHat[ip] = new TH1D(("hTrueTrain" + s).Data(),
+              ";mc p_{T} [GeV];centrality-weighted yield",
+              nbins_truth, bin_truth_edges);
+
+          hMeasTrain_ptHat[ip] = new TH1D(("hMeasTrain" + s).Data(),
+              ";reco p_{T}^{corr} [GeV];centrality-weighted yield",
+              nbins_meas, bin_meas_edges);
+
+          hRespTrain_ptHat[ip] = new TH2D(("hRespTrain" + s).Data(),
+              ";p_{T}^{reco,corr};p_{T}^{mc}",
+              nbins_meas, bin_meas_edges,
+              nbins_truth, bin_truth_edges);
+
+          hTrueTest_ptHat[ip] = new TH1D(("hTrueTest" + s).Data(),
+              ";mc p_{T} [GeV];centrality-weighted yield",
+              nbins_truth, bin_truth_edges);
+
+          hMeasTest_ptHat[ip] = new TH1D(("hMeasTest" + s).Data(),
+              ";reco p_{T}^{corr} [GeV];centrality-weighted yield",
+              nbins_meas, bin_meas_edges);
+
+          hPrior_ptHat[ip] = new TH1D(("hPrior" + s).Data(),
+              ";mc p_{T} [GeV];centrality-weighted yield",
+              nbins_truth, bin_truth_edges);
+
+          hTruthMask_ptHat[ip] = new TH1D(("hTruthMask" + s).Data(),
+              ";mc p_{T} [GeV];mask (0/1)",
+              nbins_truth, bin_truth_edges);
+
+          hTruthSignif_ptHat[ip] = new TH1D(("hTruthSignif" + s).Data(),
+              ";mc p_{T} [GeV];content/error",
+              nbins_truth, bin_truth_edges);
+
+          hTrueFull_ptHat[ip]->SetDirectory(0);
+          hMeasFull_ptHat[ip]->SetDirectory(0);
+          hRespFull_ptHat[ip]->SetDirectory(0);
+          hTrueTrain_ptHat[ip]->SetDirectory(0);
+          hMeasTrain_ptHat[ip]->SetDirectory(0);
+          hRespTrain_ptHat[ip]->SetDirectory(0);
+          hTrueTest_ptHat[ip]->SetDirectory(0);
+          hMeasTest_ptHat[ip]->SetDirectory(0);
+          hPrior_ptHat[ip]->SetDirectory(0);
+          hTruthMask_ptHat[ip]->SetDirectory(0);
+          hTruthSignif_ptHat[ip]->SetDirectory(0);
+        }
+
+
         TRandom3 rng(kSeed);
 
         // event loop
@@ -321,15 +388,17 @@ void unfold_embedding(const char* inputFile,
 
           tr->GetEntry(i);
 
-          // weight (same for prior and response)
-          const double w = (double)centralityWeight * (double)xsecWeight;
+          const int ip = FindPtHatBin((double)xsecWeight);
+          if (ip < 0) continue;
+
+          const double wCent = (double)centralityWeight;
 
           const bool haveMC = (mc_pt > 0.0);
           const bool haveReco = (reco_pt_corr > RECO_PTCORR_DUMMY_CUT);
 
           // ----- fill prior: only MC-side cuts -----
           if (haveMC && mc_pt_lead >= cut) {
-            hPrior->Fill(mc_pt, w);
+            hPrior_ptHat[ip]->Fill(mc_pt, wCent);
           }
 
           // ----- reco-side cuts for response & closure -----
@@ -343,23 +412,166 @@ void unfold_embedding(const char* inputFile,
           // dual ptlead cut (both reco & MC)
           if (!(reco_pt_lead >= cut && mc_pt_lead >= cut)) continue;
 
-          // ===== full-statistics response (no split) =====
-          hRespFull->Fill(reco_pt_corr, mc_pt, w);
-          hMeasFull->Fill(reco_pt_corr, w);
-          hTrueFull->Fill(mc_pt,        w);
+          // ===== full-statistics response (temporary, per pThat, centrality-weighted only) =====
+          hRespFull_ptHat[ip]->Fill(reco_pt_corr, mc_pt, wCent);
+          hMeasFull_ptHat[ip]->Fill(reco_pt_corr, wCent);
+          hTrueFull_ptHat[ip]->Fill(mc_pt,        wCent);
 
           // ===== closure split: train vs test =====
           const bool train = (rng.Uniform() > kTestFrac);
           if (train) {
-            hRespTrain->Fill(reco_pt_corr, mc_pt, w);
-            hMeasTrain->Fill(reco_pt_corr, w);
-            hTrueTrain->Fill(mc_pt,        w);
+            hRespTrain_ptHat[ip]->Fill(reco_pt_corr, mc_pt, wCent);
+            hMeasTrain_ptHat[ip]->Fill(reco_pt_corr, wCent);
+            hTrueTrain_ptHat[ip]->Fill(mc_pt,        wCent);
           } else {
-            hMeasTest->Fill(reco_pt_corr, w);
-            hTrueTest->Fill(mc_pt,        w);
+            hMeasTest_ptHat[ip]->Fill(reco_pt_corr, wCent);
+            hTrueTest_ptHat[ip]->Fill(mc_pt,        wCent);
           }
         }
         cout << endl;
+
+        hRespFull->Reset();
+        hMeasFull->Reset();
+        hTrueFull->Reset();
+
+        hRespTrain->Reset();
+        hMeasTrain->Reset();
+        hTrueTrain->Reset();
+
+        hMeasTest->Reset();
+        hTrueTest->Reset();
+
+        hPrior->Reset();
+
+        bool validTruthBin[kNPthatBins][nbins_truth + 1];
+
+        for (int ip = 0; ip < kNPthatBins; ++ip) {
+          cout << "    pThat bin " << ip
+              << "  xsecWeight = " << kXsecWeights[ip] << endl;
+
+          for (int jb = 1; jb <= nbins_truth; ++jb) {
+            const double c = hTrueFull_ptHat[ip]->GetBinContent(jb);
+            const double e = hTrueFull_ptHat[ip]->GetBinError(jb);
+            const double signif = (e > 0.0 ? c / e : 0.0);
+            const bool keep = (signif > kMinSignif);
+
+            validTruthBin[ip][jb] = keep;
+            hTruthMask_ptHat[ip]->SetBinContent(jb, keep ? 1.0 : 0.0);
+            hTruthSignif_ptHat[ip]->SetBinContent(jb, signif);
+
+            cout << Form("      truth bin %2d [%.1f, %.1f): c=%10.4e e=%10.4e signif=%7.3f keep=%d",
+                        jb,
+                        bin_truth_edges[jb-1], bin_truth_edges[jb],
+                        c, e, signif, keep ? 1 : 0)
+                << endl;
+          }
+        }
+
+
+        for (int ip = 0; ip < kNPthatBins; ++ip) {
+        const double xw = kXsecWeights[ip];
+
+        // ---- prior ----
+        for (int jb = 1; jb <= nbins_truth; ++jb) {
+          const double oldC = hPrior->GetBinContent(jb);
+          const double oldE = hPrior->GetBinError(jb);
+          const double addC = xw * hPrior_ptHat[ip]->GetBinContent(jb);
+          const double addE = xw * hPrior_ptHat[ip]->GetBinError(jb);
+
+          hPrior->SetBinContent(jb, oldC + addC);
+          hPrior->SetBinError(jb, std::sqrt(oldE*oldE + addE*addE));
+        }
+        // ---- truth full/train/test ----
+        for (int jb = 1; jb <= nbins_truth; ++jb) {
+          if (!validTruthBin[ip][jb]) continue;
+
+          {
+            const double oldC = hTrueFull->GetBinContent(jb);
+            const double oldE = hTrueFull->GetBinError(jb);
+            const double addC = xw * hTrueFull_ptHat[ip]->GetBinContent(jb);
+            const double addE = xw * hTrueFull_ptHat[ip]->GetBinError(jb);
+            hTrueFull->SetBinContent(jb, oldC + addC);
+            hTrueFull->SetBinError(jb, std::sqrt(oldE*oldE + addE*addE));
+          }
+
+          {
+            const double oldC = hTrueTrain->GetBinContent(jb);
+            const double oldE = hTrueTrain->GetBinError(jb);
+            const double addC = xw * hTrueTrain_ptHat[ip]->GetBinContent(jb);
+            const double addE = xw * hTrueTrain_ptHat[ip]->GetBinError(jb);
+            hTrueTrain->SetBinContent(jb, oldC + addC);
+            hTrueTrain->SetBinError(jb, std::sqrt(oldE*oldE + addE*addE));
+          }
+
+          {
+            const double oldC = hTrueTest->GetBinContent(jb);
+            const double oldE = hTrueTest->GetBinError(jb);
+            const double addC = xw * hTrueTest_ptHat[ip]->GetBinContent(jb);
+            const double addE = xw * hTrueTest_ptHat[ip]->GetBinError(jb);
+            hTrueTest->SetBinContent(jb, oldC + addC);
+            hTrueTest->SetBinError(jb, std::sqrt(oldE*oldE + addE*addE));
+          }
+        }
+
+        // ---- response full/train (keep only accepted truth columns) ----
+        for (int ix = 1; ix <= nbins_meas; ++ix) {
+          for (int jy = 1; jy <= nbins_truth; ++jy) {
+            if (!validTruthBin[ip][jy]) continue;
+
+            {
+              const double oldC = hRespFull->GetBinContent(ix, jy);
+              const double oldE = hRespFull->GetBinError(ix, jy);
+              const double addC = xw * hRespFull_ptHat[ip]->GetBinContent(ix, jy);
+              const double addE = xw * hRespFull_ptHat[ip]->GetBinError(ix, jy);
+              hRespFull->SetBinContent(ix, jy, oldC + addC);
+              hRespFull->SetBinError(ix, jy, std::sqrt(oldE*oldE + addE*addE));
+            }
+
+            {
+              const double oldC = hRespTrain->GetBinContent(ix, jy);
+              const double oldE = hRespTrain->GetBinError(ix, jy);
+              const double addC = xw * hRespTrain_ptHat[ip]->GetBinContent(ix, jy);
+              const double addE = xw * hRespTrain_ptHat[ip]->GetBinError(ix, jy);
+              hRespTrain->SetBinContent(ix, jy, oldC + addC);
+              hRespTrain->SetBinError(ix, jy, std::sqrt(oldE*oldE + addE*addE));
+            }
+          }
+        }
+
+        // ---- measured full/train/test ----
+        // simplest consistent-enough first version:
+        // use the 1D measured per-pThat as filled
+        for (int ix = 1; ix <= nbins_meas; ++ix) {
+          {
+            const double oldC = hMeasFull->GetBinContent(ix);
+            const double oldE = hMeasFull->GetBinError(ix);
+            const double addC = xw * hMeasFull_ptHat[ip]->GetBinContent(ix);
+            const double addE = xw * hMeasFull_ptHat[ip]->GetBinError(ix);
+            hMeasFull->SetBinContent(ix, oldC + addC);
+            hMeasFull->SetBinError(ix, std::sqrt(oldE*oldE + addE*addE));
+          }
+
+          {
+            const double oldC = hMeasTrain->GetBinContent(ix);
+            const double oldE = hMeasTrain->GetBinError(ix);
+            const double addC = xw * hMeasTrain_ptHat[ip]->GetBinContent(ix);
+            const double addE = xw * hMeasTrain_ptHat[ip]->GetBinError(ix);
+            hMeasTrain->SetBinContent(ix, oldC + addC);
+            hMeasTrain->SetBinError(ix, std::sqrt(oldE*oldE + addE*addE));
+          }
+
+          {
+            const double oldC = hMeasTest->GetBinContent(ix);
+            const double oldE = hMeasTest->GetBinError(ix);
+            const double addC = xw * hMeasTest_ptHat[ip]->GetBinContent(ix);
+            const double addE = xw * hMeasTest_ptHat[ip]->GetBinError(ix);
+            hMeasTest->SetBinContent(ix, oldC + addC);
+            hMeasTest->SetBinError(ix, std::sqrt(oldE*oldE + addE*addE));
+          }
+        }
+      }
+
+
 
         // normalize prior to training truth (as before)
         double intPrior = hPrior->Integral();
@@ -387,6 +599,58 @@ void unfold_embedding(const char* inputFile,
         response_closure.SetName(("response_closure_"+tag).c_str());
 
 
+        // --------------------------------------------------
+        // create output directory once for this tag
+        // --------------------------------------------------
+        TDirectory* d = fout->mkdir(tag.c_str());
+        if (!d) d = fout->GetDirectory(tag.c_str());
+        d->cd();
+
+        // common outputs: merged masked response + components
+        hRespFull->Write("hRespRecoVsTruth_full");
+        response_full.Write("response");
+
+        hMeasFull->Write("hMeasFull");
+        hTrueFull->Write("hTrueFull");
+
+        hRespTrain->Write("hRespRecoVsTruth_train");
+        response_closure.Write("response_closure");
+
+        hMeasTrain->Write("hMeasTrain");
+        hTrueTrain->Write("hTrueTrain");
+        hMeasTest ->Write("hMeasTest");
+        hTrueTest ->Write("hTrueTest");
+        hPrior    ->Write("hPrior");
+
+        // save per-pThat debug objects
+        if (kSavePtHatDebug) {
+          TDirectory* dbg = d->mkdir("debug_pthat");
+          if (!dbg) dbg = d->GetDirectory("debug_pthat");
+          dbg->cd();
+
+          for (int ip = 0; ip < kNPthatBins; ++ip) {
+            TDirectory* dp = dbg->mkdir(Form("pthat_%02d", ip));
+            if (!dp) dp = dbg->GetDirectory(Form("pthat_%02d", ip));
+            dp->cd();
+
+            hTrueFull_ptHat[ip]->Write("hTrueFull_centWeight");
+            hMeasFull_ptHat[ip]->Write("hMeasFull_centWeight");
+            hRespFull_ptHat[ip]->Write("hRespFull_centWeight");
+
+            hTrueTrain_ptHat[ip]->Write("hTrueTrain_centWeight");
+            hMeasTrain_ptHat[ip]->Write("hMeasTrain_centWeight");
+            hRespTrain_ptHat[ip]->Write("hRespTrain_centWeight");
+
+            hTrueTest_ptHat[ip]->Write("hTrueTest_centWeight");
+            hMeasTest_ptHat[ip]->Write("hMeasTest_centWeight");
+
+            hPrior_ptHat[ip]->Write("hPrior_centWeight");
+            hTruthMask_ptHat[ip]->Write("hTruthMask");
+            hTruthSignif_ptHat[ip]->Write("hTruthSignif");
+          }
+
+          d->cd();
+        }
 
       // --- BAYESIAN unfolding ---
 
@@ -568,32 +832,9 @@ void unfold_embedding(const char* inputFile,
           }
 
           // ---------- save ----------
-          const string pdfPath = string(outDir) + "/BAYES_closure_" + tagfile + ".pdf";
-        
-          
+          const string pdfPath = string(outDir) + "/BAYES_closure_" + tag + ".pdf";
 
-            // create a directory for this (R, centrality, ptlead) inside fout
-            TDirectory* d = fout->mkdir(tagfile.c_str());
-            if (!d) d = fout->GetDirectory(tagfile.c_str());
-            d->cd();
-
-            // Store full-statistics response (for data)
-            hRespFull->Write("hRespRecoVsTruth_full");
-            response_full.Write("response");  // <-- THIS is what unfold_data reads
-
-            hMeasFull->Write("hMeasFull");
-            hTrueFull->Write("hTrueFull");
-
-            // Store closure response + components
-            hRespTrain->Write("hRespRecoVsTruth_train");
-            response_closure.Write("response_closure");
-
-            hMeasTrain->Write("hMeasTrain");
-            hTrueTrain->Write("hTrueTrain");
-            hMeasTest ->Write("hMeasTest");
-            hTrueTest ->Write("hTrueTest");
-            hPrior    ->Write("hPrior");  // save the prior used
-
+          d->cd();
             // optionally save unfolded spectra for closure checks
             for (int ib = 0; ib < kNBayesIters; ++ib) {
               if (unfolded[ib]) {
@@ -614,15 +855,6 @@ void unfold_embedding(const char* inputFile,
             delete c;
             delete hT_plot;
             delete hM_truth;
-            delete hRespTrain;
-            delete hRespFull;
-            delete hMeasTrain;
-            delete hTrueTrain;
-            delete hMeasTest;
-            delete hTrueTest;
-            delete hMeasFull;
-            delete hTrueFull;
-            delete hPrior;
             delete leg;
             for (size_t ib = 0; ib < unfolded.size(); ++ib) {
               if (unfolded[ib]) delete unfolded[ib];
@@ -883,30 +1115,9 @@ void unfold_embedding(const char* inputFile,
           }
 
           // ---------- save ----------
-          const string tagfileSVD = R + "_" + C + Form("_ptlead%.0f", cut);
-          const string pdfPath_svd = string(outDir) + "/SVD_closure_" + tagfileSVD + ".pdf";
-       
-        // create a directory for this (R, centrality, ptlead) inside fout
-          TDirectory* d = fout->mkdir(tagfileSVD.c_str());
-          if (!d) d = fout->GetDirectory(tagfileSVD.c_str());
+          const string pdfPath_svd = string(outDir) + "/SVD_closure_" + tag + ".pdf";
+
           d->cd();
-
-        // Store full-statistics response (for data)
-        hRespFull->Write("hRespRecoVsTruth_full");
-        response_full.Write("response");  // <-- THIS is what unfold_data reads
-
-        hMeasFull->Write("hMeasFull");
-        hTrueFull->Write("hTrueFull");
-
-        // Store closure response + components
-        hRespTrain->Write("hRespRecoVsTruth_train");
-        response_closure.Write("response_closure");
-
-        hMeasTrain->Write("hMeasTrain");
-        hTrueTrain->Write("hTrueTrain");
-        hMeasTest ->Write("hMeasTest");
-        hTrueTest ->Write("hTrueTest");
-        hPrior    ->Write("hPrior");  // save the prior used
 
         // optionally save unfolded spectra for closure checks
         for (int iSVD = 0; iSVD < nSVD; ++iSVD) {
@@ -931,6 +1142,12 @@ void unfold_embedding(const char* inputFile,
         delete c;
         delete hT_plot_svd;
         delete hM_truth_svd;
+        delete leg_svd;
+        for (auto* u  : unfoldedSVD)      delete u;
+        for (auto* ut : unfoldedTruth) delete ut;
+
+       } //--- end of SVD unfolding ---
+
         delete hRespTrain;
         delete hRespFull;
         delete hMeasTrain;
@@ -940,11 +1157,23 @@ void unfold_embedding(const char* inputFile,
         delete hMeasFull;
         delete hTrueFull;
         delete hPrior;
-        delete leg_svd;
-        for (auto* u  : unfoldedSVD)      delete u;
-        for (auto* ut : unfoldedTruth) delete ut;
 
-       } //--- end of SVD unfolding ---
+        for (int ip = 0; ip < kNPthatBins; ++ip) {
+          delete hTrueFull_ptHat[ip];
+          delete hMeasFull_ptHat[ip];
+          delete hRespFull_ptHat[ip];
+
+          delete hTrueTrain_ptHat[ip];
+          delete hMeasTrain_ptHat[ip];
+          delete hRespTrain_ptHat[ip];
+
+          delete hTrueTest_ptHat[ip];
+          delete hMeasTest_ptHat[ip];
+
+          delete hPrior_ptHat[ip];
+          delete hTruthMask_ptHat[ip];
+          delete hTruthSignif_ptHat[ip];
+        }
 
       } // ptlead cuts
     } // centralities

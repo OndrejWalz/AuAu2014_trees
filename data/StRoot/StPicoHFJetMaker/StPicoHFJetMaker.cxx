@@ -280,22 +280,22 @@ int StPicoHFJetMaker::MakeJets() {
     MCjetTracks.push_back(inputMcParticle);
   }
 
-if (mIsEmbedding && fpThatmax > 0.0 && !MCjetTracks.empty()) {
-  float Rcheck = fR.empty() ? 0.4f : *std::max_element(fR.begin(), fR.end());
-  fastjet::JetDefinition mc_jet_def_veto(fastjet::antikt_algorithm, Rcheck);
-  fastjet::ClusterSequence mc_cs_veto(MCjetTracks, mc_jet_def_veto);
-  std::vector<fastjet::PseudoJet> mcjets_veto =
-      sorted_by_pt(mc_cs_veto.inclusive_jets(1.0)); // pT > 1 GeV
+// if (mIsEmbedding && fpThatmax > 0.0 && !MCjetTracks.empty()) {
+//   float Rcheck = fR.empty() ? 0.4f : *std::max_element(fR.begin(), fR.end());
+//   fastjet::JetDefinition mc_jet_def_veto(fastjet::antikt_algorithm, Rcheck);
+//   fastjet::ClusterSequence mc_cs_veto(MCjetTracks, mc_jet_def_veto);
+//   std::vector<fastjet::PseudoJet> mcjets_veto =
+//       sorted_by_pt(mc_cs_veto.inclusive_jets(1.0)); // pT > 1 GeV
 
-  const double ptMaxVeto = 1.5 * fpThatmax;
+//   const double ptMaxVeto = 1.5 * fpThatmax;
 
-  for (size_t i = 0; i < mcjets_veto.size(); ++i) {
-    if (mcjets_veto[i].perp() > ptMaxVeto) {
-      return kStOK;
-    }
-  }
+//   for (size_t i = 0; i < mcjets_veto.size(); ++i) {
+//     if (mcjets_veto[i].perp() > ptMaxVeto) {
+//       return kStOK;
+//     }
+//   }
  
-}
+// }
   // RC part
   GetCaloTrackMomentum(mPicoDst, mPrimVtx); // fill array Sump with momenta of tracks which are matched to BEMC
 
@@ -442,7 +442,7 @@ if (hRhoVsRefMult && !vetoReco && !fullTracks.empty()) {
 }
 
 //======================================================================//
-const double ptMaxVeto = (mIsEmbedding && fpThatmax > 0.0) ? (1.5 * fpThatmax) : -1.0;
+// const double ptMaxVeto = (mIsEmbedding && fpThatmax > 0.0) ? (1.5 * fpThatmax) : -1.0;
 for (unsigned int i = 0; i < fR.size(); i++) {
   fastjet::JetDefinition jet_def(fastjet::antikt_algorithm, fR[i]);
   float maxRapJet = 1 - fR[i];
@@ -464,14 +464,14 @@ for (unsigned int i = 0; i < fR.size(); i++) {
     }
   }
 
-  if (ptMaxVeto > 0.0 && !fullTracks.empty()) {
-  for (size_t jr = 0; jr < myRecoJets.size(); ++jr) {
-    if (myRecoJets[jr].pt_corr > ptMaxVeto) {
-      myRecoJets.clear();
-      return kStOK; // veto whole event
-    }
-  }
-}
+//   if (ptMaxVeto > 0.0 && !fullTracks.empty()) {
+//   for (size_t jr = 0; jr < myRecoJets.size(); ++jr) {
+//     if (myRecoJets[jr].pt_corr > ptMaxVeto) {
+//       myRecoJets.clear();
+//       return kStOK; // veto whole event
+//     }
+//   }
+// }
 
   //======================================================================//
 

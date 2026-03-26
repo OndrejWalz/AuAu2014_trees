@@ -1,7 +1,6 @@
 #!/bin/bash
 
 setup 64b
-cons
 
 kinit
 aklog

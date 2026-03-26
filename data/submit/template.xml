@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <job fileListSyntax="xrootd" maxFilesPerProcess="&maxNFiles;" simulateSubmission="false">
-  <shell>singularity exec -e -B /direct -B /star -B /afs -B /gpfs -B /sdcc/lustre02 /cvmfs/star.sdcc.bnl.gov/containers/rhic_sl7.sif</shell> <!-- highlight -->
-  
 
-  <!-- <shell>singularity exec -e -B /direct -B /star -B /afs -B /gpfs -B /sdcc/lustre02 /cvmfs/star.sdcc.bnl.gov/containers/rhic_sl7.sif</shell> -->
+  <shell>singularity exec -e -B /direct -B /star -B /afs -B /gpfs -B /sdcc/lustre02 /cvmfs/star.sdcc.bnl.gov/containers/rhic_sl7.sif</shell>
 
   <stdout URL="file:&jobFolder;/log/$JOBID.out"/>
   <stderr URL="file:&jobFolder;/err/$JOBID.err"/>
@@ -16,15 +14,15 @@
     <ListLocation>./list/</ListLocation>
   </Generator>
 
-<command>
-  setup 64b
-  starver &starVersion;
-  root4star -l -b -q StRoot/macros/&rootMacro;\(\"$FILELIST\",\"&filelist_name;_$JOBINDEX\",0,\"picoDst\",&isEmbedding;\)
-</command>
+  <command>
+    setup 64b
+    starver &starVersion;
+    cons
+    root4star -l -b -q StRoot/macros/&rootMacro;\(\"$FILELIST\",\"&filelist_name;_$JOBINDEX\",0,\"picoDst\",&isEmbedding;\)
+  </command>
 
   <output fromScratch="*.root" toURL="&jobFolder;/production/" />
   <output fromScratch="*.log" toURL="&jobFolder;/log/" />
-
 
   <SandBox installer="ZIP">
     <Package name="LocalLibraries">
@@ -34,4 +32,3 @@
     </Package>
   </SandBox>
 </job>
-
