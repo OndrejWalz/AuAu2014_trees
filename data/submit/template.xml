@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <job fileListSyntax="xrootd" maxFilesPerProcess="&maxNFiles;" simulateSubmission="false">
+  <shell>singularity exec -e -B /direct -B /star -B /afs -B /gpfs -B /sdcc/lustre02 /cvmfs/star.sdcc.bnl.gov/containers/rhic_sl7.sif</shell> <!-- highlight -->
+  
 
   <!-- <shell>singularity exec -e -B /direct -B /star -B /afs -B /gpfs -B /sdcc/lustre02 /cvmfs/star.sdcc.bnl.gov/containers/rhic_sl7.sif</shell> -->
 

@@ -12,7 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Files relative to this structure
-SIF="${SCRIPT_DIR}/roounfold.sif"              # analysis/unfolding/roounfold.sif
+#SIF="${SCRIPT_DIR}/roounfold.sif"              # analysis/unfolding/roounfold.sif
+SIF=/gpfs/mnt/gpfs01/star/pwg/svomich/JetsTrees/analysis/unfolding/roounfold.sif
 MACRO="${SCRIPT_DIR}/unfold_embedding.cxx"    # analysis/unfolding/unfold_embedding.cxx
 
 ########################
@@ -61,11 +62,21 @@ mkdir -p "$OUT_DIR"
 # Run inside container
 ########################
 
-apptainer exec -e -B /gpfs01 \
+#apptainer exec -e -B /gpfs01 \
+#  "$SIF" \
+#  root -l -b <<EOF
+#gSystem->Load("libRooUnfold");
+#.x ${MACRO}+("${INPUT}","${OUT_DIR}","${METHOD}");
+#.q
+#EOF
+
+apptainer exec \
+  --bind /gpfs/mnt/gpfs01:/gpfs/mnt/gpfs01 \
+  --bind /gpfs/mnt/gpfs01:/gpfs01 \
   "$SIF" \
   root -l -b <<EOF
 gSystem->Load("libRooUnfold");
-.x ${MACRO}+("${INPUT}","${OUT_DIR}",")"${METHOD};
+.x ${MACRO}+("${INPUT}","${OUT_DIR}","${METHOD}");
 .q
 EOF
 

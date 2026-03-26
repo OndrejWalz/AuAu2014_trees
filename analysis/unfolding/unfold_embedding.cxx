@@ -35,17 +35,17 @@ static const double kPtLeadCuts[] = {0.0, 5.0, 7.0, 9.0};
 static const int    kNPtLeadCuts  = sizeof(kPtLeadCuts)/sizeof(kPtLeadCuts[0]);
 
 // measured & truth binning
-//----------------------------------------------------------------- original binning 
-static const int nbins_meas = 24;
-static const double bin_meas_edges[nbins_meas+1] = {
-  -100,-80,-60,-40,-20,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15,17.5,
-  20,22.5,25,27.5,30,35,40,50,60
-};
+// //----------------------------------------------------------------- original binning 
+// static const int nbins_meas = 24;
+// static const double bin_meas_edges[nbins_meas+1] = {
+//   -100,-80,-60,-40,-20,-10,-5,-2.5,0,2.5,5,7.5,10,12.5,15,17.5,
+//   20,22.5,25,27.5,30,35,40,50,60
+// };
 
-static const int nbins_truth = 10;
-static const double bin_truth_edges[nbins_truth+1] = {
-  0,5,10,15,20,25,30,35,40,50,60
-};
+// static const int nbins_truth = 10;
+// static const double bin_truth_edges[nbins_truth+1] = {
+//   0,5,10,15,20,25,30,35,40,50,60
+// };
 //----------------------------------------------------------------- bin choice: 1
 
 // static const int nbins_truth = 7;
@@ -93,6 +93,18 @@ static const double bin_truth_edges[nbins_truth+1] = {
 // static const double bin_meas_edges[nbins_meas+1] = {
 //   -100,-80,-60,-40,-20,-10,-5,-2.5,0, 2, 4, 6, 8, 10, 12.5, 15, 17.5, 20, 25 , 30, 35, 40, 50, 60
 // };
+
+//--------------------------------------------------------------bin choice: 4
+static const int nbins_truth = 10;
+static const double bin_truth_edges[nbins_truth+1] = {
+  0, 6, 10, 15, 20, 25, 30, 35, 40, 50, 60
+};
+
+
+static const int nbins_meas = 1;
+static const double bin_meas_edges[nbins_meas+1] = {
+ -100, 70
+};
 
 
 static const vector<string> kCentralities =
